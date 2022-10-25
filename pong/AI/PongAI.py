@@ -75,11 +75,12 @@ class PongAI(PongGUI):
                 cls.move_paddle(left=False, up=False)
                 
             
-            Pong.update(time())
+            Pong.update()
             cls.render()
             if Pong.points_left >= 1 or Pong.points_right >= 1 or Pong.left_hits > 50 or Pong.right_hits > 50:
                 cls.calculate_fitness(genome1, genome2)
                 break
+            cls.clock.tick(120)
             
             
                             

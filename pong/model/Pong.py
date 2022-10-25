@@ -2,14 +2,12 @@
 from math import *
 from typing import List, Optional, Tuple
 import random
-import pygame
 from pong.event.EventBus import EventBus
 from pong.event.ModelEvent import ModelEvent
 from pong.model.Ball import Ball
 from pong.model.Config import *
 from pong.model.Entity import Entity
 from pong.model.Paddle import Paddle
-import time
 
 class Pong:
     """
@@ -25,7 +23,7 @@ class Pong:
 
     # --------  Game Logic -------------
 
-    timeForLastHit: float = 0         # To avoid multiple collisions
+    last_hit: str = ""
 
     @classmethod
     def load_entities(cls):
@@ -43,13 +41,12 @@ class Pong:
         ]
 
     @classmethod
-    def update(cls, now: float):
+    def update(cls):
         """Updates the state of all loaded Entities."""
         for entity in cls.entities:
             entity.move()
-        
-        if now - cls.timeForLastHit > 0.01:
-            cls.check_collisions()
+
+        cls.check_collisions()
         
     @classmethod
     def get_points_left(cls) -> int:
@@ -70,9 +67,12 @@ class Pong:
     def check_collisions(cls):
         """Checks for collisions."""
         # Collision with top and bottom wall
-        cls.__bounce_wall()
+        if cls.last_hit != "top_wall" or cls.last_hit != "bottom_wall":
+            cls.__bounce_wall()
         # Collisions between ball & paddle
-        cls.__bounce_paddle()
+        if cls.last_hit != "left_paddle" or cls.last_hit != "right_paddle":
+            cls.__bounce_paddle()
+        
         # Collision with side wall, point scoring
         cls.__touch_down()
 
@@ -130,6 +130,7 @@ class Pong:
         """If the ball hits the top or bottom of the screen, reverse its vertical direction."""
         if (cls.ball.get_max_y() >= GAME_HEIGHT or cls.ball.get_y() <= 0):
             cls.ball.accelerate(cls.ball.dx, -cls.ball.dy)
+            cls.last_hit = "top_wall" if cls.ball.get_y() <= 0 else "bottom_wall"
 
     @classmethod
     def __bounce_paddle(cls):
@@ -137,10 +138,12 @@ class Pong:
         for paddle in [cls.right_paddle, cls.left_paddle]:
             if cls.ball.intersects(paddle):
                 if paddle == cls.right_paddle:
-                    cls.right_hits += 1
+                    cls.right_hits += 1 if cls.last_hit != "right_paddle" else 0
+                    cls.change_last_hit("right_paddle")
                 else:
-                    cls.left_hits += 1
-                cls.timeForLastHit = time.time()
+                    cls.left_hits += 1 if cls.last_hit != "left_paddle" else 0
+                    cls.change_last_hit("left_paddle")
+
                 new_dx, new_dy = cls.__compute_new_vector(paddle)
                 cls.ball.accelerate((BALL_SPEED_FACTOR * new_dx), new_dy)
                 EventBus.publish_type(ModelEvent.EventType.BALL_HIT_PADDLE)
@@ -158,6 +161,11 @@ class Pong:
             dx = random_dx,
             dy = random_dy
         )
+
+    @classmethod
+    def change_last_hit(cls, item: str):
+        """Changes the time of the last hit."""
+        cls.last_hit = item
 
     @classmethod
     def __compute_new_vector(cls, paddle: Entity) -> Tuple[float, float]:

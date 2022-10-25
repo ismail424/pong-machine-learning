@@ -237,7 +237,7 @@ class PongGUI:
             cls.handle_events()
             if cls.running:
                 # Update model
-                Pong.update(time.time())
+                Pong.update()
                 # Render
                 cls.render()
             # Tick
