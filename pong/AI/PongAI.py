@@ -4,7 +4,7 @@ from pong.view.theme.Duckie import Duckie
 from pong.model.Pong import Pong
 from pong.model.Config import *
 import neat
-from time import time
+import pickle
 import os
 import pygame
 
@@ -36,7 +36,11 @@ class PongAI(PongGUI):
         p.add_reporter(neat.Checkpointer(5, filename_prefix=check_points_dir + '/neat-checkpoint-')) # Save every 5 generations
         
         # Get the best genome
-        winner = p.run(cls.__eval_genomes, 50) # 50 generations
+        winner = p.run(cls.__eval_genomes, 50)
+        best_ai_object_path = os.path.join(cls.dir_path, "best_ai_object.pkl")
+        print("Saving best AI object to: " + best_ai_object_path)
+        with open(best_ai_object_path, 'wb') as output:
+            pickle.dump(winner, output)         
     
     @classmethod
     def train_ai(cls, genome1, genome2, config):
@@ -82,8 +86,53 @@ class PongAI(PongGUI):
                 break
             cls.clock.tick(120)
             
+    @classmethod
+    def get_best_ai(cls):
+        best_ai_object_path = os.path.join(cls.dir_path, "best_ai_object.pkl")
+        return pickle.load(open(best_ai_object_path, 'rb'))
+
+    @classmethod
+    def test_ai(cls):
+        net = neat.nn.FeedForwardNetwork.create(cls.get_best_ai(), cls.__load_config())
+        
+        # Load assets
+        cls.running = True
+        cls.assets = Cool()
+        cls.init_pygame()
+        Pong.load_entities()
+        Pong.reset_points()
+
+        while cls.running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit()
+                         
+            key_pressed = pygame.key.get_pressed()
+            if key_pressed[pygame.K_UP]:
+                cls.move_paddle(left=False, up=True)
+            elif key_pressed[pygame.K_DOWN]:
+                cls.move_paddle(left=False, up=False)
+            else:
+                Pong.right_paddle.accelerate(0,0)
+
             
-                            
+                
+            output = net.activate((Pong.left_paddle.y, Pong.ball.y, abs(Pong.ball.x - Pong.left_paddle.x)))
+            decision = output.index(max(output))
+            
+            if decision == 0:
+                pass
+            elif decision == 1:
+                cls.move_paddle(left=True, up=True)
+            else:
+                cls.move_paddle(left=True, up=False)
+
+            
+            Pong.update()
+            cls.render()
+
+            cls.clock.tick(60)
+
     @classmethod
     def calculate_fitness(cls, genome1, genome2):
         genome1.fitness += Pong.points_left
