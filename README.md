@@ -16,11 +16,13 @@ NEAT (NeuroEvolution of Augmenting Topologies) is an evolutionary algorithm that
 
 #  AI vs AI
 
-First theme.
+####  First theme.
 ![First theme](https://i.imgur.com/aVH6AnD.gif)
 
-Second theme.
+####  Second theme.
+
 ![Second theme](https://i.imgur.com/ayf9me3.gif)
+
 
 
 ## Installation
