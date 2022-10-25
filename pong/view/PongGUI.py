@@ -9,6 +9,7 @@ from pong.model.Entity import Entity
 from pong.model.Pong import Pong
 from pong.view.theme.Cool import Cool
 from pong.view.theme.Duckie import Duckie
+from pong.view.Assets import Assets
 from typing import Tuple
 import time
 
@@ -58,6 +59,16 @@ class PongGUI:
             Pong.left_paddle.accelerate(0, PADDLE_SPEED)
 
     @classmethod
+    def move_paddle(cls, left: bool, up: bool):
+        if left == True and up == True:
+            Pong.left_paddle.accelerate(0, -PADDLE_SPEED)
+        elif left == True and up == False:
+            Pong.left_paddle.accelerate(0, PADDLE_SPEED)
+        elif left == False and up == True:
+            Pong.right_paddle.accelerate(0, -PADDLE_SPEED)
+        elif left == False and up == False:
+            Pong.right_paddle.accelerate(0, PADDLE_SPEED)
+    @classmethod
     def key_released(cls, event):
         """Handles the pygame.KEYUP event."""
         if not cls.running:
@@ -83,8 +94,8 @@ class PongGUI:
     class ModelEventHandler(EventHandler):
         def on_model_event(self, evt: ModelEvent):
             if evt.event_type == ModelEvent.EventType.BALL_HIT_PADDLE:
-                filename = PongGUI.assets.ball_hit_paddle_sound_file
-                PongGUI.assets.get_sound(filename).play()
+                filename = Assets.ball_hit_paddle_sound_file
+                Assets.get_sound(filename).play()
             elif evt.event_type == ModelEvent.EventType.BALL_HIT_WALL_CEILING:
                 # TODO Optional
                 pass
@@ -117,6 +128,12 @@ class PongGUI:
         cls.__display_text(text, 22, (255,255,255), (GAME_WIDTH/2, 20), (0,0,0))
 
     @classmethod
+    def draw_hits(cls):
+        l_hits, r_hits = Pong.get_hits()
+        text = f"Left: {l_hits}, Right: {r_hits}"
+        cls.__display_text(text, 22, (255,255,255), (GAME_WIDTH/2, 40))
+
+    @classmethod
     def __display_text(
         cls,
         text: str,
@@ -137,7 +154,6 @@ class PongGUI:
             cls.screen.blit(temp_surface, text_rect)
         else:
             cls.screen.blit(text, text_rect)
-        pygame.display.flip()
 
     @classmethod 
     def __create_text_element(cls, text: str, size: int, color: Tuple[int, int, int]):
@@ -155,7 +171,9 @@ class PongGUI:
             cls.draw_entity(entity)
 
         # Draw scoreboard
+        cls.draw_hits()
         cls.draw_scoreboard()
+        
         player_won = Pong.get_winner()
         if player_won:
             cls.win_screen(player_won)

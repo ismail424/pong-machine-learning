@@ -1,7 +1,7 @@
 # package pong.model
 from math import *
 from typing import List, Optional, Tuple
-
+import random
 import pygame
 from pong.event.EventBus import EventBus
 from pong.event.ModelEvent import ModelEvent
@@ -19,6 +19,8 @@ class Pong:
     """
     points_left  = 0
     points_right = 0
+    left_hits    = 0
+    right_hits   = 0
     entities: List[Entity]
 
     # --------  Game Logic -------------
@@ -60,6 +62,11 @@ class Pong:
         return cls.points_right
 
     @classmethod
+    def get_hits(cls) -> Tuple[int, int]:
+        """ Returns the number of hits of both paddles."""
+        return cls.left_hits, cls.right_hits
+
+    @classmethod
     def check_collisions(cls):
         """Checks for collisions."""
         # Collision with top and bottom wall
@@ -74,7 +81,15 @@ class Pong:
         """Resets the game points."""
         cls.points_left = 0
         cls.points_right = 0
+        cls.reset_hits()
 
+    
+    @classmethod
+    def reset_hits(cls):
+        """ Resets the hits of both paddles."""
+        cls.left_hits = 0
+        cls.right_hits = 0
+    
     @classmethod
     def get_winner(cls) -> Optional[int]:
         """Returns the winner, if any."""
@@ -96,7 +111,9 @@ class Pong:
             cls.__point_won("r")
         elif (cls.ball.get_center_x() >= GAME_WIDTH):
             cls.__point_won("l")
-    
+
+        
+        
     @classmethod
     def __point_won(cls, side: str):
         """Adds a point to the player on the given side, and resets the ball."""
@@ -104,6 +121,8 @@ class Pong:
             cls.points_right += 1
         elif side == "l":
             cls.points_left += 1
+            
+        cls.reset_hits()
         cls.load_entities()
 
     @classmethod
@@ -117,6 +136,10 @@ class Pong:
         """If the ball hits the paddle, bounce it back at a different angle depending on where it hits the paddle."""
         for paddle in [cls.right_paddle, cls.left_paddle]:
             if cls.ball.intersects(paddle):
+                if paddle == cls.right_paddle:
+                    cls.right_hits += 1
+                else:
+                    cls.left_hits += 1
                 cls.timeForLastHit = time.time()
                 new_dx, new_dy = cls.__compute_new_vector(paddle)
                 cls.ball.accelerate((BALL_SPEED_FACTOR * new_dx), new_dy)
@@ -125,13 +148,15 @@ class Pong:
     @classmethod
     def __create_ball(cls) -> Ball:
         """Creates a ball object with a diffrent starting direction each round."""
+        random_dx = random.choice([-4, 4])
+        random_dy = random.choice([-1, 1])
         return Ball(
             x = GAME_WIDTH / 2 - BALL_WIDTH / 2,
             y = GAME_HEIGHT / 2 - BALL_HEIGHT / 2,
             width = BALL_WIDTH,
             height = BALL_HEIGHT,
-            dx = (4 if (cls.points_left + cls.points_right) % 2 == 0 else -4),
-            dy = 0
+            dx = random_dx,
+            dy = random_dy
         )
 
     @classmethod
@@ -156,7 +181,11 @@ class Pong:
 
         if cls.ball.get_x() <= GAME_WIDTH / 2:
             new_dy *= -1
-
+            
+        if abs(new_dy) == 0:
+            new_dy = 0.05
+        new_dy += random.uniform(-0.1, 0.1)
+        new_dx += random.uniform(-0.1, 0.1)
         return new_dx, new_dy
 
     @classmethod
